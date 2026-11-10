@@ -6,22 +6,42 @@ const app = express();
 app.use(express.json());
 app.use(express.static(path.join(__dirname, 'public')));
 
-const MONGO_URI = process.env.MONGO_URI;
+const PORT = process.env.PORT || 3000;
 const DB_NAME = "keyaccess_db";
 const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || "123456";
 
 let db, keysCollection, resellersCollection, logsCollection;
 
-async function startServer() {
-    let uri = process.env.MONGO_URI || "";
-    
-    // Remove portas (ex: :27017) ou formatações erradas de URI +srv
+// Sanitiza e trata a string do MongoDB antes da conexão
+function cleanMongoUri(rawUri) {
+    if (!rawUri) return "";
+    let uri = rawUri.trim();
+
+    // Se for mongodb+srv, remove portas indevidas (ex: :27017)
     if (uri.startsWith("mongodb+srv://")) {
         uri = uri.replace(/:[0-9]+(\/|\?|$)/, "$1");
     }
 
+    // Corrige o @ no e-mail de utilizador se não estiver codificado como %40
+    if (uri.includes("gmail.com") && !uri.includes("gmail.com%40") && uri.includes("@gmail.com:")) {
+        uri = uri.replace("@gmail.com:", "%40gmail.com:");
+    }
+
+    return uri;
+}
+
+// Inicia o servidor Express primeiro para garantir estabilidade no Render
+app.listen(PORT, () => {
+    console.log(`Servidor Web ativo na porta ${PORT}`);
+    connectDatabase();
+});
+
+async function connectDatabase() {
+    const rawUri = process.env.MONGO_URI;
+    const uri = cleanMongoUri(rawUri);
+
     if (!uri) {
-        console.error("ERRO CRÍTICO: MONGO_URI não definida!");
+        console.error("AVISO: MONGO_URI não definida nas variáveis de ambiente!");
         return;
     }
 
@@ -34,11 +54,8 @@ async function startServer() {
         logsCollection = db.collection('logs');
         console.log("Conectado ao MongoDB Atlas com sucesso!");
     } catch (err) {
-        console.error("Falha ao ligar ao MongoDB:", err.message);
+        console.error("Erro ao conectar ao MongoDB:", err.message);
     }
-
-    const PORT = process.env.PORT || 3000;
-    app.listen(PORT, () => console.log(`Servidor a correr na porta ${PORT}`));
 }
 
 async function addLog(action, details) {
@@ -49,7 +66,9 @@ async function addLog(action, details) {
     } catch (e) {}
 }
 
-// LOGIN
+// ================= API ENDPOINTS =================
+
+// LOGIN ADMIN / REVENDEDOR
 app.post('/api/auth/login', async (req, res) => {
     const { username, password } = req.body;
     if (username === 'admin' && password === ADMIN_PASSWORD) {
@@ -81,17 +100,17 @@ app.get('/api/admin/dashboard', async (req, res) => {
 
         res.json({ stats: { totalKeys, activeKeys, bannedKeys }, keys, resellers, logs });
     } catch (err) {
-        res.status(500).json({ error: "Erro ao buscar dados" });
+        res.status(500).json({ error: "Erro ao carregar dashboard" });
     }
 });
 
 // CRIAR CHAVE
 app.post('/api/keys/create', async (req, res) => {
     try {
-        if (!keysCollection) return res.status(500).json({ success: false, message: "Base de dados indisponível." });
-        
+        if (!keysCollection) return res.status(500).json({ success: false, message: "Aguardando conexão com o banco..." });
+
         const { durationDays, maxDevices, resellerUser } = req.body;
-        
+
         if (resellerUser && resellersCollection) {
             const reseller = await resellersCollection.findOne({ username: resellerUser });
             if (!reseller || reseller.credits <= 0) {
@@ -101,7 +120,7 @@ app.post('/api/keys/create', async (req, res) => {
         }
 
         const keyString = 'KEY-' + Math.random().toString(36).substring(2, 8).toUpperCase() + '-' + Math.random().toString(36).substring(2, 6).toUpperCase();
-        
+
         let expiresAt = null;
         if (durationDays && parseInt(durationDays) > 0) {
             expiresAt = new Date();
@@ -127,7 +146,7 @@ app.post('/api/keys/create', async (req, res) => {
     }
 });
 
-// AÇÕES DA CHAVE
+// AÇÕES DA CHAVE (BANIR, HWID RESET, DELETE)
 app.post('/api/keys/action', async (req, res) => {
     const { keyId, action } = req.body;
     try {
@@ -153,13 +172,13 @@ app.post('/api/keys/action', async (req, res) => {
 app.post('/api/admin/reseller/create', async (req, res) => {
     const { username, password, credits } = req.body;
     try {
-        if (!resellersCollection) return res.status(500).json({ success: false, message: "Base de dados indisponível." });
-        
-        await resellersCollection.insertOne({ 
-            username, 
-            password, 
-            credits: parseInt(credits) || 10, 
-            createdAt: new Date() 
+        if (!resellersCollection) return res.status(500).json({ success: false, message: "Aguardando conexão com o banco..." });
+
+        await resellersCollection.insertOne({
+            username,
+            password,
+            credits: parseInt(credits) || 10,
+            createdAt: new Date()
         });
         await addLog("Revendedor", `Criado: ${username}`);
         res.json({ success: true });
@@ -168,18 +187,20 @@ app.post('/api/admin/reseller/create', async (req, res) => {
     }
 });
 
-// VALIDAR CHAVE APP
+// VALIDAÇÃO DE LICENÇA (APP)
 app.post('/api/user/validate', async (req, res) => {
     try {
-        if (!keysCollection) return res.status(500).json({ success: false, message: "Servidor a iniciar..." });
+        if (!keysCollection) return res.status(500).json({ success: false, message: "Aguardando conexão com o banco..." });
 
         const { key, hwid } = req.body;
+        if (!key || !hwid) return res.status(400).json({ success: false, message: "Dados incompletos." });
+
         const keyData = await keysCollection.findOne({ key: key.toUpperCase() });
         if (!keyData) return res.json({ success: false, message: "Chave inválida." });
 
-        if (keyData.banned) return res.json({ success: false, message: "Chave banida." });
+        if (keyData.banned) return res.json({ success: false, message: "Chave banida pelo administrador." });
         if (keyData.expiresAt && new Date() > new Date(keyData.expiresAt)) {
-            return res.json({ success: false, message: "Chave expirada." });
+            return res.json({ success: false, message: "Licença expirada." });
         }
 
         let devices = keyData.devices || [];
@@ -188,11 +209,11 @@ app.post('/api/user/validate', async (req, res) => {
         if (devices.length < (keyData.maxDevices || 3)) {
             devices.push(hwid);
             await keysCollection.updateOne({ _id: keyData._id }, { $set: { devices: devices } });
-            return res.json({ success: true, message: "Dispositivo registado!" });
+            return res.json({ success: true, message: "Dispositivo registrado!" });
         }
 
-        return res.json({ success: false, message: "Limite de aparelhos atingido." });
+        return res.json({ success: false, message: "Limite de dispositivos atingido." });
     } catch (err) {
-        res.status(500).json({ success: false, message: "Erro interno." });
+        res.status(500).json({ success: false, message: "Erro interno no servidor." });
     }
 });
