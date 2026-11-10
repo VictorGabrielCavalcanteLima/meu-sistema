@@ -3,56 +3,67 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>KeyAccess Pro - Dark Mode</title>
+    <title>KeyAccess Enterprise Pro</title>
     <style>
         :root {
-            --bg-color: #000000;
-            --card-bg: #111111;
-            --card-border: #222222;
-            --text-main: #FFFFFF;
-            --text-muted: #8E8E93;
-            --accent-btn: #FFFFFF;
-            --accent-text: #000000;
+            --bg: #000000;
+            --card: #111111;
+            --border: #222222;
+            --text: #FFFFFF;
+            --muted: #8E8E93;
             --input-bg: #1A1A1A;
             --danger: #FF453A;
             --success: #32D74B;
+            --warning: #FF9F0A;
         }
 
         * { margin: 0; padding: 0; box-sizing: border-box; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
-        body { background-color: var(--bg-color); color: var(--text-main); padding: 20px; display: flex; justify-content: center; }
-        .container { width: 100%; max-width: 480px; }
-        
-        header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; margin-top: 12px; }
-        h1 { font-size: 28px; font-weight: 800; letter-spacing: -0.5px; }
-        .nav-buttons { display: flex; gap: 8px; }
-        
-        .btn-toggle {
-            background: var(--card-bg); border: 1px solid var(--card-border); color: var(--text-muted);
-            padding: 8px 14px; border-radius: 20px; font-size: 13px; font-weight: 600; cursor: pointer;
-        }
-        .btn-toggle.active { background: var(--text-main); color: var(--accent-text); border-color: var(--text-main); }
+        body { background-color: var(--bg); color: var(--text); padding: 16px; display: flex; justify-content: center; }
+        .container { width: 100%; max-width: 520px; }
 
-        .card { background-color: var(--card-bg); border: 1px solid var(--card-border); border-radius: 20px; padding: 24px; margin-bottom: 16px; }
-        .card-title { font-size: 18px; font-weight: 700; margin-bottom: 8px; }
-        .card-desc { font-size: 13px; color: var(--text-muted); margin-bottom: 20px; line-height: 1.4; }
-
-        input {
-            width: 100%; height: 50px; background-color: var(--input-bg); border: 1px solid var(--card-border);
-            border-radius: 12px; padding: 0 16px; color: var(--text-main); font-size: 15px; margin-bottom: 12px; outline: none;
+        header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; padding-top: 10px; }
+        h1 { font-size: 24px; font-weight: 800; letter-spacing: -0.5px; }
+        
+        .nav-tabs { display: flex; gap: 6px; }
+        .tab-btn {
+            background: var(--card); border: 1px solid var(--border); color: var(--muted);
+            padding: 6px 12px; border-radius: 16px; font-size: 12px; font-weight: 600; cursor: pointer;
         }
-        input:focus { border-color: var(--text-muted); }
+        .tab-btn.active { background: var(--text); color: var(--bg); border-color: var(--text); }
+
+        .card { background-color: var(--card); border: 1px solid var(--border); border-radius: 20px; padding: 20px; margin-bottom: 16px; }
+        .card-title { font-size: 16px; font-weight: 700; margin-bottom: 6px; }
+        .card-desc { font-size: 12px; color: var(--muted); margin-bottom: 16px; line-height: 1.4; }
+
+        input, select {
+            width: 100%; height: 46px; background-color: var(--input-bg); border: 1px solid var(--border);
+            border-radius: 12px; padding: 0 14px; color: var(--text); font-size: 14px; margin-bottom: 10px; outline: none;
+        }
+        input:focus, select:focus { border-color: var(--muted); }
 
         button.primary {
-            width: 100%; height: 50px; background-color: var(--accent-btn); color: var(--accent-text);
-            border: none; border-radius: 12px; font-size: 15px; font-weight: 700; cursor: pointer; transition: 0.2s;
+            width: 100%; height: 46px; background-color: var(--text); color: var(--bg);
+            border: none; border-radius: 12px; font-size: 14px; font-weight: 700; cursor: pointer; transition: 0.2s;
         }
         button.primary:active { opacity: 0.8; }
 
-        table { width: 100%; border-collapse: collapse; font-size: 13px; text-align: left; margin-top: 12px; }
-        th { color: var(--text-muted); font-size: 11px; text-transform: uppercase; padding-bottom: 12px; border-bottom: 1px solid var(--card-border); }
-        td { padding: 12px 0; border-bottom: 1px solid var(--card-border); font-family: monospace; }
+        /* Stats Grid */
+        .stats-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 16px; }
+        .stat-box { background: var(--input-bg); border: 1px solid var(--border); border-radius: 14px; padding: 12px; text-align: center; }
+        .stat-num { font-size: 20px; font-weight: 800; margin-bottom: 2px; }
+        .stat-label { font-size: 10px; color: var(--muted); text-transform: uppercase; }
 
-        .action-btn { background: none; border: none; color: var(--danger); cursor: pointer; font-size: 16px; }
+        /* Table & List */
+        .table-scroll { overflow-x: auto; margin-top: 10px; }
+        table { width: 100%; border-collapse: collapse; font-size: 12px; text-align: left; }
+        th { color: var(--muted); font-size: 10px; text-transform: uppercase; padding-bottom: 8px; border-bottom: 1px solid var(--border); }
+        td { padding: 10px 0; border-bottom: 1px solid var(--border); font-family: monospace; }
+        
+        .actions-cell { display: flex; gap: 6px; }
+        .icon-btn { background: var(--input-bg); border: 1px solid var(--border); border-radius: 8px; width: 28px; height: 28px; cursor: pointer; color: var(--text); font-size: 12px; display: flex; align-items: center; justify-content: center; }
+        .icon-btn:hover { border-color: var(--text); }
+
+        .log-item { font-size: 11px; font-family: monospace; padding: 6px 0; border-bottom: 1px solid var(--border); color: var(--muted); }
         .hidden { display: none; }
     </style>
 </head>
@@ -62,129 +73,212 @@
         <header>
             <div>
                 <h1>KeyAccess</h1>
-                <span style="font-size: 12px; color: var(--text-muted);" id="subtitle">Portal de Validação</span>
+                <span style="font-size: 11px; color: var(--muted);" id="subtitle">Portal de Validação</span>
             </div>
-            <div class="nav-buttons">
-                <button class="btn-toggle active" id="btnUserTab" onclick="switchTab('user')">Usuário</button>
-                <button class="btn-toggle" id="btnAdminTab" onclick="switchTab('admin')">Admin</button>
+            <div class="nav-tabs">
+                <button class="tab-btn active" onclick="switchView('user')">App</button>
+                <button class="tab-btn" onclick="switchView('login')">Admin/Rev</button>
             </div>
         </header>
 
-        <!-- ÁREA DO USUÁRIO -->
-        <div id="userSection" class="card">
-            <div class="card-title">Portal de Validação</div>
-            <div class="card-desc">Insira a sua chave para validar o acesso no seu dispositivo.</div>
+        <!-- 1. VISTA UTILIZADOR / APP -->
+        <div id="viewUser" class="card">
+            <div class="card-title">Validação de Licença</div>
+            <div class="card-desc">Insira a sua chave para verificar o acesso no dispositivo.</div>
             <input type="text" id="inputKey" placeholder="KEY-XXXX-XXXX" />
-            <button class="primary" onclick="validateKey()">Validar Acesso</button>
+            <button class="primary" onclick="validateKey()">Verificar Licença</button>
             <p id="userMsg" style="margin-top: 12px; font-size: 13px; text-align: center;"></p>
         </div>
 
-        <!-- LOGIN ADMIN -->
-        <div id="adminLoginSection" class="card hidden">
+        <!-- 2. VISTA LOGIN -->
+        <div id="viewLogin" class="card hidden">
             <div class="card-title">Acesso Restrito</div>
-            <div class="card-desc">Introduza a palavra-passe do administrador para gerir o sistema.</div>
-            <input type="password" id="adminPasswordInput" placeholder="Sua palavra-passe de admin" />
-            <button class="primary" onclick="loginAdmin()">Entrar no Painel</button>
-            <p id="loginMsg" style="margin-top: 12px; font-size: 13px; text-align: center; color: var(--danger);"></p>
+            <div class="card-desc">Entre com sua conta de Admin ou Revendedor.</div>
+            <input type="text" id="loginUser" placeholder="Utilizador (ex: admin)" />
+            <input type="password" id="loginPass" placeholder="Palavra-passe" />
+            <button class="primary" onclick="doLogin()">Entrar no Sistema</button>
+            <p id="loginMsg" style="margin-top: 10px; font-size: 12px; text-align: center; color: var(--danger);"></p>
         </div>
 
-        <!-- PAINEL ADMIN -->
-        <div id="adminSection" class="card hidden">
-            <div class="card-title">Painel do Proprietário</div>
-            <div class="card-desc">Gerenciamento de licenças persistentes na nuvem.</div>
+        <!-- 3. PAINEL DE GESTÃO (ADMIN / REVENDEDOR) -->
+        <div id="viewDashboard" class="card hidden">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+                <div>
+                    <div class="card-title" id="dashTitle">Painel de Controlo</div>
+                    <div style="font-size: 11px; color: var(--muted);" id="dashSubtitle">Gestão em tempo real</div>
+                </div>
+                <button class="tab-btn" onclick="switchView('user')" style="color: var(--danger);">Sair</button>
+            </div>
 
-            <button class="primary" onclick="createKey()" style="margin-bottom: 20px;">+ Criar Nova Key</button>
+            <!-- Estatísticas -->
+            <div class="stats-grid" id="statsArea">
+                <div class="stat-box"><div class="stat-num" id="statTotal">0</div><div class="stat-label">Total</div></div>
+                <div class="stat-box"><div class="stat-num" id="statActive" style="color: var(--success);">0</div><div class="stat-label">Ativas</div></div>
+                <div class="stat-box"><div class="stat-num" id="statBanned" style="color: var(--danger);">0</div><div class="stat-label">Banidas</div></div>
+            </div>
 
-            <div class="card-title" style="font-size: 15px;">Chaves Ativas</div>
-            <table>
-                <thead>
-                    <tr>
-                        <th>Chave</th>
-                        <th>Aparelhos</th>
-                        <th>Ação</th>
-                    </tr>
-                </thead>
-                <tbody id="keysTableBody"></tbody>
-            </table>
+            <!-- Gerador de Chaves -->
+            <div style="background: var(--input-bg); padding: 14px; border-radius: 14px; margin-bottom: 16px; border: 1px solid var(--border);">
+                <div style="font-size: 13px; font-weight: 700; margin-bottom: 8px;">Gerar Nova Chave</div>
+                <select id="keyDuration">
+                    <option value="1">1 Dia de Acesso</option>
+                    <option value="7">7 Dias de Acesso</option>
+                    <option value="30" selected>30 Dias de Acesso</option>
+                    <option value="0">Vitalícia (Sem Expiração)</option>
+                </select>
+                <button class="primary" onclick="createKey()">Criar Chave na Nuvem</button>
+            </div>
+
+            <!-- Secção exclusiva Admin: Criar Revendedor -->
+            <div id="adminControls" class="hidden" style="background: var(--input-bg); padding: 14px; border-radius: 14px; margin-bottom: 16px; border: 1px solid var(--border);">
+                <div style="font-size: 13px; font-weight: 700; margin-bottom: 8px;">Criar Conta de Revendedor</div>
+                <input type="text" id="resUser" placeholder="Nome do Revendedor" />
+                <input type="password" id="resPass" placeholder="Palavra-passe" />
+                <input type="number" id="resCredits" placeholder="Créditos iniciais (ex: 15)" />
+                <button class="primary" onclick="createReseller()">Adicionar Revendedor</button>
+            </div>
+
+            <!-- Tabela de Chaves -->
+            <div class="card-title" style="font-size: 14px; margin-top: 10px;">Chaves Ativas</div>
+            <div class="table-scroll">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Chave</th>
+                            <th>Dispositivos</th>
+                            <th>Validade</th>
+                            <th>Ações</th>
+                        </tr>
+                    </thead>
+                    <tbody id="keysTableBody"></tbody>
+                </table>
+            </div>
+
+            <!-- Logs Recentes -->
+            <div class="card-title" style="font-size: 14px; margin-top: 20px;">Atividade Recente</div>
+            <div id="logsContainer" style="max-height: 120px; overflow-y: auto; background: var(--input-bg); padding: 8px; border-radius: 10px; border: 1px solid var(--border);"></div>
         </div>
     </div>
 
     <script>
-        let adminAuthToken = "";
+        let currentUser = null;
 
-        function switchTab(tab) {
-            document.getElementById('btnUserTab').classList.toggle('active', tab === 'user');
-            document.getElementById('btnAdminTab').classList.toggle('active', tab === 'admin');
-            
-            if (tab === 'user') {
-                document.getElementById('userSection').classList.remove('hidden');
-                document.getElementById('adminLoginSection').classList.add('hidden');
-                document.getElementById('adminSection').classList.add('hidden');
-            } else {
-                document.getElementById('userSection').classList.add('hidden');
-                if (adminAuthToken) {
-                    document.getElementById('adminSection').classList.remove('hidden');
-                    loadKeys();
-                } else {
-                    document.getElementById('adminLoginSection').classList.remove('hidden');
-                }
+        function switchView(view) {
+            document.getElementById('viewUser').classList.add('hidden');
+            document.getElementById('viewLogin').classList.add('hidden');
+            document.getElementById('viewDashboard').classList.add('hidden');
+
+            if (view === 'user') document.getElementById('viewUser').classList.remove('hidden');
+            if (view === 'login') document.getElementById('viewLogin').classList.remove('hidden');
+            if (view === 'dashboard') {
+                document.getElementById('viewDashboard').classList.remove('hidden');
+                loadDashboardData();
             }
         }
 
-        async function loginAdmin() {
-            const pass = document.getElementById('adminPasswordInput').value;
-            const res = await fetch('/api/admin/login', {
+        async function doLogin() {
+            const user = document.getElementById('loginUser').value;
+            const pass = document.getElementById('loginPass').value;
+            
+            const res = await fetch('/api/auth/login', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ password: pass })
+                body: JSON.stringify({ username: user, password: pass })
             });
             const data = await res.json();
+            
             if (data.success) {
-                adminAuthToken = pass;
-                document.getElementById('adminLoginSection').classList.add('hidden');
-                document.getElementById('adminSection').classList.remove('hidden');
-                loadKeys();
+                currentUser = data;
+                if (data.role === 'admin') {
+                    document.getElementById('adminControls').classList.remove('hidden');
+                    document.getElementById('dashTitle').innerText = "Painel do Administrador";
+                } else {
+                    document.getElementById('adminControls').classList.add('hidden');
+                    document.getElementById('dashTitle').innerText = `Painel Revendedor: ${data.username} (Créditos: ${data.credits})`;
+                }
+                switchView('dashboard');
             } else {
                 document.getElementById('loginMsg').innerText = data.message;
             }
         }
 
-        async function loadKeys() {
-            const res = await fetch('/api/admin/keys', {
-                headers: { 'x-admin-auth': adminAuthToken }
-            });
-            const keys = await res.json();
+        async function loadDashboardData() {
+            const res = await fetch('/api/admin/dashboard');
+            const data = await res.json();
+
+            document.getElementById('statTotal').innerText = data.stats.totalKeys;
+            document.getElementById('statActive').innerText = data.stats.activeKeys;
+            document.getElementById('statBanned').innerText = data.stats.bannedKeys;
+
             const tbody = document.getElementById('keysTableBody');
             tbody.innerHTML = '';
-            keys.forEach(k => {
+            data.keys.forEach(k => {
+                let statusColor = k.banned ? 'color: var(--danger);' : '';
+                let validity = k.durationDays === 0 ? 'Vitalícia' : (k.expiresAt ? new Date(k.expiresAt).toLocaleDateString() : 'N/A');
+                
                 tbody.innerHTML += `
-                    <tr>
-                        <td>${k.key}</td>
-                        <td>${k.devices ? k.devices.length : 0} / ${k.maxDevices || 3}</td>
-                        <td><button class="action-btn" onclick="deleteKey('${k._id}')">🗑️</button></td>
+                    <tr style="${statusColor}">
+                        <td>${k.key} ${k.banned ? '[BAN]' : ''}</td>
+                        <td>${k.devices ? k.devices.length : 0}/${k.maxDevices}</td>
+                        <td>${validity}</td>
+                        <td class="actions-cell">
+                            <button class="icon-btn" title="Reset HWID" onclick="keyAction('${k._id}', 'reset_hwid')">🔄</button>
+                            <button class="icon-btn" title="Banir/Desbanir" onclick="keyAction('${k._id}', 'ban')">🚫</button>
+                            <button class="icon-btn" title="Apagar" onclick="keyAction('${k._id}', 'delete')">🗑️</button>
+                        </td>
                     </tr>`;
+            });
+
+            const logsDiv = document.getElementById('logsContainer');
+            logsDiv.innerHTML = '';
+            data.logs.forEach(l => {
+                logsDiv.innerHTML += `<div class="log-item">[${new Date(l.timestamp).toLocaleTimeString()}] ${l.action}: ${l.details}</div>`;
             });
         }
 
         async function createKey() {
-            await fetch('/api/admin/keys', {
+            const durationDays = document.getElementById('keyDuration').value;
+            const resellerUser = currentUser && currentUser.role === 'reseller' ? currentUser.username : null;
+
+            const res = await fetch('/api/keys/create', {
                 method: 'POST',
-                headers: { 
-                    'Content-Type': 'application/json',
-                    'x-admin-auth': adminAuthToken 
-                },
-                body: JSON.stringify({ maxDevices: 3 })
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ durationDays, maxDevices: 3, resellerUser })
             });
-            loadKeys();
+            const data = await res.json();
+            if (data.success) {
+                loadDashboardData();
+            } else {
+                alert(data.message || "Erro ao criar chave.");
+            }
         }
 
-        async function deleteKey(id) {
-            if (!confirm("Remover esta chave?")) return;
-            await fetch(`/api/admin/keys/${id}`, {
-                method: 'DELETE',
-                headers: { 'x-admin-auth': adminAuthToken }
+        async function keyAction(keyId, action) {
+            await fetch('/api/keys/action', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ keyId, action })
             });
-            loadKeys();
+            loadDashboardData();
+        }
+
+        async function createReseller() {
+            const username = document.getElementById('resUser').value;
+            const password = document.getElementById('resPass').value;
+            const credits = document.getElementById('resCredits').value;
+
+            const res = await fetch('/api/admin/reseller/create', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ username, password, credits })
+            });
+            const data = await res.json();
+            if (data.success) {
+                alert("Revendedor criado com sucesso!");
+                document.getElementById('resUser').value = '';
+                document.getElementById('resPass').value = '';
+                document.getElementById('resCredits').value = '';
+            }
         }
 
         async function validateKey() {
@@ -193,7 +287,7 @@
             const res = await fetch('/api/user/validate', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ key, hwid: "ANDROID-TESTE-HWID" })
+                body: JSON.stringify({ key, hwid: "ANDROID-DEVICE-HWID" })
             });
             const data = await res.json();
             msg.style.color = data.success ? "var(--success)" : "var(--danger)";
