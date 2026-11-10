@@ -1,1 +1,547 @@
+<!DOCTYPE html>
+<html lang="pt-BR" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>KeyAccess Pro - Gestão e Validade de Chaves</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        brand: { 50: '#f0f6ff', 500: '#3b82f6', 600: '#2563eb', 700: '#1d4ed8' },
+                        darkbg: '#090d16',
+                        darkcard: '#111827',
+                    },
+                    animation: {
+                        'fade-in': 'fadeIn 0.25s ease-out forwards',
+                        'shake': 'shake 0.4s cubic-bezier(.36,.07,.19,.97) both',
+                    },
+                    keyframes: {
+                        fadeIn: { '0%': { opacity: '0', transform: 'scale(0.98)' }, '100%': { opacity: '1', transform: 'scale(1)' } },
+                        shake: {
+                            '10%, 90%': { transform: 'translate3d(-1px, 0, 0)' },
+                            '20%, 80%': { transform: 'translate3d(2px, 0, 0)' },
+                            '30%, 50%, 70%': { transform: 'translate3d(-4px, 0, 0)' },
+                            '40%, 60%': { transform: 'translate3d(4px, 0, 0)' }
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        body { font-family: 'Inter', sans-serif; background-color: #090d16; color: #f3f4f6; }
+        .glow-bg { background: radial-gradient(circle at 50% -10%, rgba(124, 58, 237, 0.18), transparent 60%); }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col justify-between glow-bg antialiased selection:bg-purple-600 selection:text-white">
 
+    <!-- Toast Notifications Container -->
+    <div id="toast-container" class="fixed top-5 right-5 z-50 flex flex-col gap-2 pointer-events-none"></div>
+
+    <!-- NAVBAR TOP -->
+    <nav class="border-b border-gray-800/80 bg-gray-950/60 backdrop-blur-md px-4 py-3.5 sm:px-8">
+        <div class="max-w-7xl mx-auto flex justify-between items-center">
+            <div class="flex items-center gap-3">
+                <div class="w-9 h-9 rounded-xl bg-purple-500/10 text-purple-400 flex items-center justify-center border border-purple-500/20 shadow-inner">
+                    <i class="fa-solid fa-shield-halved text-base"></i>
+                </div>
+                <div>
+                    <span class="font-bold text-white tracking-wide text-base">KeyAccess Pro</span>
+                    <span class="text-xs text-gray-500 block -mt-1" id="nav-mode-indicator">Portal de Entrada</span>
+                </div>
+            </div>
+
+            <div class="flex items-center gap-2">
+                <button id="btn-nav-user" onclick="switchToUserView()" class="px-3 py-1.5 rounded-lg text-xs font-semibold bg-purple-600 text-white transition-all flex items-center gap-1.5 shadow-sm">
+                    <i class="fa-solid fa-user"></i>
+                    <span>Área do Usuário</span>
+                </button>
+                <button id="btn-nav-admin" onclick="switchToAdminView()" class="px-3 py-1.5 rounded-lg text-xs font-semibold bg-gray-800 text-gray-400 hover:text-white hover:bg-gray-700 transition-all flex items-center gap-1.5 border border-gray-700/60">
+                    <i class="fa-solid fa-user-shield"></i>
+                    <span>Painel Admin</span>
+                </button>
+            </div>
+        </div>
+    </nav>
+
+    <!-- CONTAINER PRINCIPAL -->
+    <main class="flex-grow flex items-center justify-center p-4 sm:p-6 lg:p-8">
+
+        <!-- 1. TELA DO USUÁRIO -->
+        <section id="user-validation-section" class="w-full max-w-md animate-fade-in">
+            <div class="bg-gray-900/80 border border-gray-800/90 rounded-2xl p-8 shadow-2xl backdrop-blur-xl relative overflow-hidden">
+                <div class="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-purple-500 via-indigo-500 to-blue-500"></div>
+
+                <div class="text-center mb-8">
+                    <div class="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-purple-500/10 text-purple-400 mb-3 border border-purple-500/20 shadow-inner">
+                        <i class="fa-solid fa-key text-2xl"></i>
+                    </div>
+                    <h1 class="text-2xl font-bold text-white tracking-tight">Portal de Validação</h1>
+                    <p class="text-gray-400 text-xs mt-1">Insira a sua chave de acesso para desbloquear a área restrita.</p>
+                </div>
+
+                <form id="user-key-form" onsubmit="validateUserKey(event)" class="space-y-4">
+                    <div>
+                        <label for="user-input-key" class="block text-xs font-semibold uppercase tracking-wider text-gray-400 mb-2">Chave de Acesso</label>
+                        <div class="relative">
+                            <span class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-gray-500">
+                                <i class="fa-solid fa-lock text-xs"></i>
+                            </span>
+                            <input type="text" id="user-input-key" required autocomplete="off" placeholder="Insira sua key aqui..." class="w-full pl-10 pr-4 py-3 bg-gray-950/80 border border-gray-800 rounded-xl text-white placeholder-gray-600 focus:outline-none focus:border-purple-500 focus:ring-1 focus:ring-purple-500 font-mono text-sm uppercase tracking-wider transition-all">
+                        </div>
+                    </div>
+
+                    <div id="user-key-feedback" class="hidden p-3 rounded-xl text-xs font-medium flex items-center gap-2"></div>
+
+                    <button type="submit" class="w-full py-3.5 px-4 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white font-semibold rounded-xl shadow-lg shadow-purple-600/20 transition-all flex items-center justify-center gap-2 text-sm">
+                        <span>Acessar Conteúdo</span>
+                        <i class="fa-solid fa-arrow-right text-xs"></i>
+                    </button>
+                </form>
+
+                <div class="mt-6 pt-5 border-t border-gray-800/80 text-center space-y-1">
+                    <p class="text-[11px] text-gray-500">A validade da chave só inicia no primeiro login.</p>
+                    <p class="text-[11px] text-purple-400/80"><i class="fa-solid fa-laptop-code text-[10px] mr-1"></i> Limite de até 3 aparelhos por chave (HWID Lock).</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- 2. CONTEÚDO PROTEGIDO -->
+        <section id="protected-content-section" class="w-full max-w-4xl hidden animate-fade-in space-y-6">
+            <div class="bg-gray-900/80 border border-gray-800 rounded-2xl p-8 backdrop-blur-xl shadow-2xl relative overflow-hidden">
+                <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 pb-6 border-b border-gray-800">
+                    <div class="flex items-center gap-4">
+                        <div class="w-14 h-14 rounded-2xl bg-emerald-500/10 text-emerald-400 flex items-center justify-center border border-emerald-500/20 shadow-lg">
+                            <i class="fa-solid fa-unlock text-2xl"></i>
+                        </div>
+                        <div>
+                            <span class="inline-block px-2.5 py-0.5 rounded-full text-[10px] font-semibold uppercase tracking-wider bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 mb-1">Acesso Autorizado</span>
+                            <h2 class="text-2xl font-bold text-white">Bem-vindo à Área Exclusiva</h2>
+                            <p class="text-xs text-gray-400">Sua chave é válida e este dispositivo está registrado com sucesso.</p>
+                        </div>
+                    </div>
+                    <button onclick="exitProtectedArea()" class="px-4 py-2 bg-gray-800 hover:bg-gray-700 text-gray-300 rounded-xl text-xs font-semibold transition-all border border-gray-700 flex items-center gap-2">
+                        <i class="fa-solid fa-right-from-bracket"></i>
+                        <span>Sair / Encerrar Sessão</span>
+                    </button>
+                </div>
+
+                <div class="mt-8 space-y-6">
+                    <div class="bg-gray-950/60 border border-gray-800/80 rounded-xl p-6">
+                        <h3 class="text-base font-semibold text-white mb-2 flex items-center gap-2">
+                            <i class="fa-solid fa-crown text-amber-400"></i>
+                            <span>Painel do Membro VIP</span>
+                        </h3>
+                        <p class="text-xs text-gray-400 leading-relaxed mb-4">Você desbloqueou a página exclusiva. O tempo começou a contar no seu primeiro login e sua chave aceita até 3 dispositivos autorizados.</p>
+                        <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 mt-4">
+                            <div class="bg-gray-900 border border-gray-800 p-4 rounded-xl text-center">
+                                <i class="fa-solid fa-file-shield text-purple-400 text-xl mb-2"></i>
+                                <h4 class="text-xs font-semibold text-white">Scripts & Ferramentas</h4>
+                                <p class="text-[11px] text-gray-500 mt-1">Acesso aos utilitários premium</p>
+                            </div>
+                            <div class="bg-gray-900 border border-gray-800 p-4 rounded-xl text-center">
+                                <i class="fa-solid fa-mobile-screen-button text-indigo-400 text-xl mb-2"></i>
+                                <h4 class="text-xs font-semibold text-white">Aparelhos Vinculados</h4>
+                                <p id="user-key-devices-info" class="text-[11px] text-indigo-400 mt-1 font-mono">Até 3 Aparelhos</p>
+                            </div>
+                            <div class="bg-gray-900 border border-gray-800 p-4 rounded-xl text-center">
+                                <i class="fa-solid fa-clock text-emerald-400 text-xl mb-2"></i>
+                                <h4 class="text-xs font-semibold text-white">Status da Sessão</h4>
+                                <p id="user-key-expiration-info" class="text-[11px] text-emerald-400 mt-1 font-mono">Ativo via Servidor</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="p-4 bg-purple-500/5 border border-purple-500/20 rounded-xl flex flex-col sm:flex-row items-start sm:items-center justify-between text-xs gap-2">
+                        <div class="flex items-center gap-2 text-gray-300">
+                            <i class="fa-solid fa-fingerprint text-purple-400"></i>
+                            <span>HWID Dispositivo Atual: <strong id="current-device-id" class="font-mono text-gray-200">---</strong></span>
+                        </div>
+                        <span id="active-key-badge" class="font-mono text-purple-300 font-semibold bg-gray-900 px-2.5 py-1 rounded border border-gray-800">Key: ---</span>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- 3. LOGIN DO ADMINISTRADOR -->
+        <section id="admin-login-section" class="w-full max-w-md hidden animate-fade-in">
+            <div class="bg-gray-900/80 border border-gray-800 rounded-2xl p-8 shadow-2xl backdrop-blur-xl relative overflow-hidden">
+                <div class="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-purple-600 to-pink-600"></div>
+
+                <div class="text-center mb-8">
+                    <div class="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-purple-500/10 text-purple-400 mb-3 border border-purple-500/20">
+                        <i class="fa-solid fa-user-shield text-2xl"></i>
+                    </div>
+                    <h1 class="text-2xl font-bold text-white tracking-tight">Acesso Administrativo</h1>
+                    <p class="text-gray-400 text-xs mt-1">Informe a senha restrita do proprietário para continuar.</p>
+                </div>
+
+                <form id="admin-login-form" onsubmit="handleAdminLogin(event)" class="space-y-4">
+                    <div>
+                        <label for="admin-password" class="block text-xs font-semibold uppercase tracking-wider text-gray-400 mb-2">Senha do Administrador</label>
+                        <div class="relative">
+                            <span class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-gray-500">
+                                <i class="fa-solid fa-lock text-xs"></i>
+                            </span>
+                            <input type="password" id="admin-password" required placeholder="Digite a senha..." class="w-full pl-10 pr-10 py-3 bg-gray-950/80 border border-gray-800 rounded-xl text-white placeholder-gray-600 focus:outline-none focus:border-purple-500 text-sm transition-all">
+                        </div>
+                    </div>
+
+                    <div id="admin-login-feedback" class="hidden p-3 rounded-xl text-xs font-medium flex items-center gap-2"></div>
+
+                    <button type="submit" class="w-full py-3.5 px-4 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-500 hover:to-pink-500 text-white font-semibold rounded-xl shadow-lg transition-all flex items-center justify-center gap-2 text-sm">
+                        <i class="fa-solid fa-shield text-xs"></i>
+                        <span>Entrar no Painel</span>
+                    </button>
+                </form>
+            </div>
+        </section>
+
+        <!-- 4. PAINEL DO ADMINISTRADOR -->
+        <section id="admin-dashboard-section" class="w-full max-w-6xl hidden animate-fade-in space-y-6">
+            <header class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-gray-900/80 border border-gray-800 p-6 rounded-2xl backdrop-blur-xl">
+                <div class="flex items-center gap-4">
+                    <div class="w-12 h-12 rounded-xl bg-purple-500/10 text-purple-400 flex items-center justify-center border border-purple-500/20">
+                        <i class="fa-solid fa-sliders text-xl"></i>
+                    </div>
+                    <div>
+                        <h2 class="text-xl font-bold text-white">Painel do Proprietário</h2>
+                        <p class="text-xs text-gray-400">Chaves ativam no 1º uso. Limite de 3 dispositivos por key.</p>
+                    </div>
+                </div>
+                <div class="flex items-center gap-3 w-full sm:w-auto justify-end">
+                    <button onclick="openModal()" class="px-4 py-2.5 bg-purple-600 hover:bg-purple-500 text-white text-xs font-semibold rounded-xl transition-all shadow-lg flex items-center justify-center gap-2">
+                        <i class="fa-solid fa-plus"></i>
+                        <span>Criar Nova Key</span>
+                    </button>
+                    <button onclick="adminLogout()" class="px-3.5 py-2.5 bg-gray-800 hover:bg-rose-500/10 hover:text-rose-400 text-gray-300 text-xs font-semibold rounded-xl border border-gray-700 transition-all flex items-center gap-2">
+                        <i class="fa-solid fa-right-from-bracket"></i>
+                        <span>Sair Admin</span>
+                    </button>
+                </div>
+            </header>
+
+            <div class="bg-gray-900/80 border border-gray-800 rounded-2xl overflow-hidden backdrop-blur-xl">
+                <div class="p-4 border-b border-gray-800 flex justify-between items-center">
+                    <h3 class="text-sm font-semibold text-white">Chaves Ativas no Servidor</h3>
+                    <button onclick="loadAdminKeys()" class="text-xs text-purple-400 hover:underline"><i class="fa-solid fa-rotate"></i> Atualizar Lista</button>
+                </div>
+
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left border-collapse">
+                        <thead>
+                            <tr class="bg-gray-950/60 text-gray-400 text-[11px] font-semibold uppercase border-b border-gray-800 tracking-wider">
+                                <th class="py-3.5 px-4">Chave (Key)</th>
+                                <th class="py-3.5 px-4">Duração</th>
+                                <th class="py-3.5 px-4">Aparelhos (HWID)</th>
+                                <th class="py-3.5 px-4 text-right">Ações</th>
+                            </tr>
+                        </thead>
+                        <tbody id="keys-table-body" class="divide-y divide-gray-800/60 text-xs">
+                            <!-- Inserido dinamicamente via API -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- MODAL DE CRIAÇÃO DE CHAVES -->
+    <div id="key-modal" class="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm hidden animate-fade-in p-4">
+        <div class="bg-gray-900 border border-gray-800 rounded-2xl w-full max-w-md shadow-2xl overflow-hidden">
+            <div class="flex justify-between items-center p-5 border-b border-gray-800">
+                <h3 class="text-sm font-bold text-white flex items-center gap-2">
+                    <i class="fa-solid fa-clock-rotate-left text-purple-400"></i>
+                    <span>Criar Nova Chave</span>
+                </h3>
+                <button onclick="closeModal()" class="text-gray-400 hover:text-white transition-colors"><i class="fa-solid fa-xmark text-base"></i></button>
+            </div>
+
+            <form id="modal-form" onsubmit="saveNewKey(event)" class="p-6 space-y-4">
+                <div>
+                    <label class="block text-xs font-semibold text-gray-400 mb-1">Chave Personalizada (Opcional)</label>
+                    <input type="text" id="custom-key-input" placeholder="Ex: VIP-PRO-2026" class="w-full px-3.5 py-2 bg-gray-950 border border-gray-800 rounded-xl text-white font-mono text-xs uppercase focus:outline-none focus:border-purple-500">
+                </div>
+
+                <div>
+                    <label class="block text-xs font-semibold text-gray-400 mb-1">Duração (Dias, 0 para Permanente)</label>
+                    <input type="number" id="duration-days-input" value="30" min="0" required class="w-full px-3.5 py-2 bg-gray-950 border border-gray-800 rounded-xl text-white text-xs focus:outline-none focus:border-purple-500">
+                </div>
+
+                <div class="pt-4 flex justify-end gap-2 border-t border-gray-800">
+                    <button type="button" onclick="closeModal()" class="px-4 py-2 bg-gray-800 hover:bg-gray-700 text-gray-300 rounded-xl text-xs font-semibold">Cancelar</button>
+                    <button type="submit" class="px-4 py-2 bg-purple-600 hover:bg-purple-500 text-white rounded-xl text-xs font-semibold shadow-md">Gerar Chave</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <footer class="py-4 text-center text-[11px] text-gray-600 border-t border-gray-900">
+        KeyAccess Pro &copy; 2026 - Conectado ao Servidor Node.js
+    </footer>
+
+    <!-- LÓGICA JAVASCRIPT CONECTADA À API -->
+    <script>
+        const API_URL = '/api';
+        let adminToken = localStorage.getItem('admin_token') || '';
+
+        function getDeviceHWID() {
+            let hwid = localStorage.getItem('app_device_hwid');
+            if (!hwid) {
+                hwid = 'HWID-' + Math.random().toString(36).substring(2, 8).toUpperCase() + '-' + Date.now().toString(36).toUpperCase();
+                localStorage.setItem('app_device_hwid', hwid);
+            }
+            return hwid;
+        }
+
+        function hideAllSections() {
+            document.getElementById('user-validation-section').classList.add('hidden');
+            document.getElementById('protected-content-section').classList.add('hidden');
+            document.getElementById('admin-login-section').classList.add('hidden');
+            document.getElementById('admin-dashboard-section').classList.add('hidden');
+        }
+
+        function switchToUserView() {
+            hideAllSections();
+            document.getElementById('user-validation-section').classList.remove('hidden');
+            document.getElementById('btn-nav-user').className = "px-3 py-1.5 rounded-lg text-xs font-semibold bg-purple-600 text-white transition-all flex items-center gap-1.5 shadow-sm";
+            document.getElementById('btn-nav-admin').className = "px-3 py-1.5 rounded-lg text-xs font-semibold bg-gray-800 text-gray-400 hover:text-white hover:bg-gray-700 transition-all flex items-center gap-1.5 border border-gray-700/60";
+            document.getElementById('nav-mode-indicator').innerText = "Portal de Entrada";
+        }
+
+        function switchToAdminView() {
+            hideAllSections();
+            if (adminToken) {
+                document.getElementById('admin-dashboard-section').classList.remove('hidden');
+                loadAdminKeys();
+            } else {
+                document.getElementById('admin-login-section').classList.remove('hidden');
+            }
+            document.getElementById('btn-nav-user').className = "px-3 py-1.5 rounded-lg text-xs font-semibold bg-gray-800 text-gray-400 hover:text-white hover:bg-gray-700 transition-all flex items-center gap-1.5 border border-gray-700/60";
+            document.getElementById('btn-nav-admin').className = "px-3 py-1.5 rounded-lg text-xs font-semibold bg-purple-600 text-white transition-all flex items-center gap-1.5 shadow-sm";
+            document.getElementById('nav-mode-indicator').innerText = "Modo Administrador";
+        }
+
+        // Validação de Usuário via API
+        async function validateUserKey(event) {
+            event.preventDefault();
+            const key = document.getElementById('user-input-key').value.trim();
+            const hwid = getDeviceHWID();
+            const feedbackEl = document.getElementById('user-key-feedback');
+            const cardEl = document.querySelector('#user-validation-section > div');
+
+            try {
+                const res = await fetch(`${API_URL}/user/validate`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ key, hwid })
+                });
+                const data = await res.json();
+
+                if (data.success) {
+                    feedbackEl.className = "p-3 rounded-xl text-xs font-medium flex items-center gap-2 bg-emerald-500/10 border border-emerald-500/20 text-emerald-400";
+                    feedbackEl.innerHTML = `<i class="fa-solid fa-circle-check"></i> ${data.message}`;
+                    feedbackEl.classList.remove('hidden');
+
+                    setTimeout(() => {
+                        hideAllSections();
+                        document.getElementById('protected-content-section').classList.remove('hidden');
+                        document.getElementById('active-key-badge').innerText = `Key: ${key}`;
+                        document.getElementById('current-device-id').innerText = hwid;
+                        showToast('Acesso concedido pelo servidor!', 'success');
+                    }, 500);
+                } else {
+                    showErrorShake(cardEl, feedbackEl, data.message || 'Chave inválida.');
+                }
+            } catch (err) {
+                showErrorShake(cardEl, feedbackEl, 'Erro de conexão com o servidor.');
+            }
+        }
+
+        function showErrorShake(cardEl, feedbackEl, message) {
+            cardEl.classList.remove('animate-shake');
+            void cardEl.offsetWidth;
+            cardEl.classList.add('animate-shake');
+            feedbackEl.className = "p-3 rounded-xl text-xs font-medium flex items-center gap-2 bg-rose-500/10 border border-rose-500/20 text-rose-400";
+            feedbackEl.innerHTML = `<i class="fa-solid fa-circle-exclamation"></i> ${message}`;
+            feedbackEl.classList.remove('hidden');
+        }
+
+        function exitProtectedArea() {
+            document.getElementById('user-input-key').value = '';
+            document.getElementById('user-key-feedback').classList.add('hidden');
+            switchToUserView();
+            showToast('Sessão encerrada.', 'info');
+        }
+
+        // Login Admin via API
+        async function handleAdminLogin(event) {
+            event.preventDefault();
+            const password = document.getElementById('admin-password').value;
+            const feedbackEl = document.getElementById('admin-login-feedback');
+            const cardEl = document.querySelector('#admin-login-section > div');
+
+            try {
+                const res = await fetch(`${API_URL}/admin/login`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ password })
+                });
+                const data = await res.json();
+
+                if (data.success) {
+                    adminToken = data.token;
+                    localStorage.setItem('admin_token', adminToken);
+                    feedbackEl.className = "p-3 rounded-xl text-xs font-medium flex items-center gap-2 bg-emerald-500/10 border border-emerald-500/20 text-emerald-400";
+                    feedbackEl.innerHTML = `<i class="fa-solid fa-circle-check"></i> Login efetuado com sucesso!`;
+                    feedbackEl.classList.remove('hidden');
+
+                    setTimeout(() => {
+                        switchToAdminView();
+                        showToast('Painel Admin Conectado!', 'success');
+                    }, 400);
+                } else {
+                    cardEl.classList.add('animate-shake');
+                    feedbackEl.className = "p-3 rounded-xl text-xs font-medium flex items-center gap-2 bg-rose-500/10 border border-rose-500/20 text-rose-400";
+                    feedbackEl.innerHTML = `<i class="fa-solid fa-lock text-xs"></i> ${data.message || 'Senha incorreta.'}`;
+                    feedbackEl.classList.remove('hidden');
+                }
+            } catch (err) {
+                alert('Erro ao comunicar com o servidor.');
+            }
+        }
+
+        function adminLogout() {
+            localStorage.removeItem('admin_token');
+            adminToken = '';
+            document.getElementById('admin-password').value = '';
+            switchToAdminView();
+            showToast('Sessão admin encerrada.', 'info');
+        }
+
+        // Carregar Chaves do Servidor
+        async function loadAdminKeys() {
+            try {
+                const res = await fetch(`${API_URL}/admin/keys`, {
+                    headers: { 'Authorization': `Bearer ${adminToken}` }
+                });
+                const data = await res.json();
+
+                if (data.success) {
+                    const tbody = document.getElementById('keys-table-body');
+                    tbody.innerHTML = '';
+
+                    data.keys.forEach(k => {
+                        const tr = document.createElement('tr');
+                        tr.className = "hover:bg-gray-800/40 transition-colors";
+                        tr.innerHTML = `
+                            <td class="py-3.5 px-4 font-mono text-purple-300"><span class="bg-gray-950 px-2 py-1 rounded border border-gray-800">${k.key_code}</span></td>
+                            <td class="py-3.5 px-4 text-gray-300">${k.duration_days === 0 ? 'Permanente' : k.duration_days + ' dias'}</td>
+                            <td class="py-3.5 px-4 font-mono text-xs text-indigo-400">${k.device_count} / 3 Aparelhos</td>
+                            <td class="py-3.5 px-4 text-right">
+                                <div class="flex items-center justify-end gap-1.5">
+                                    <button onclick="resetHwid(${k.id})" title="Resetar HWID" class="p-1.5 text-indigo-400 bg-gray-800 hover:bg-gray-700 rounded-lg"><i class="fa-solid fa-rotate-left text-xs"></i></button>
+                                    <button onclick="deleteKey(${k.id})" title="Excluir Chave" class="p-1.5 text-rose-400 bg-gray-800 hover:bg-rose-500/10 rounded-lg"><i class="fa-regular fa-trash-can text-xs"></i></button>
+                                </div>
+                            </td>
+                        `;
+                        tbody.appendChild(tr);
+                    });
+                }
+            } catch (err) {
+                console.error('Erro ao buscar chaves', err);
+            }
+        }
+
+        // Criar Chave via API
+        async function saveNewKey(event) {
+            event.preventDefault();
+            const customKey = document.getElementById('custom-key-input').value.trim();
+            const durationDays = parseInt(document.getElementById('duration-days-input').value);
+
+            try {
+                const res = await fetch(`${API_URL}/admin/create-key`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${adminToken}`
+                    },
+                    body: JSON.stringify({ customKey, durationDays })
+                });
+                const data = await res.json();
+
+                if (data.success) {
+                    showToast(`Chave criada: ${data.key}`, 'success');
+                    closeModal();
+                    loadAdminKeys();
+                } else {
+                    alert(data.message);
+                }
+            } catch (err) {
+                alert('Erro ao criar chave.');
+            }
+        }
+
+        async function resetHwid(keyId) {
+            if (!confirm('Tens certeza que desejas resetar os dispositivos desta chave?')) return;
+            try {
+                const res = await fetch(`${API_URL}/admin/reset-hwid`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${adminToken}`
+                    },
+                    body: JSON.stringify({ keyId })
+                });
+                const data = await res.json();
+                if (data.success) {
+                    showToast('Dispositivos resetados!', 'success');
+                    loadAdminKeys();
+                }
+            } catch (err) {
+                alert('Erro ao resetar HWID.');
+            }
+        }
+
+        async function deleteKey(keyId) {
+            if (!confirm('Tens certeza que desejas apagar esta chave?')) return;
+            try {
+                const res = await fetch(`${API_URL}/admin/delete-key/${keyId}`, {
+                    method: 'DELETE',
+                    headers: { 'Authorization': `Bearer ${adminToken}` }
+                });
+                const data = await res.json();
+                if (data.success) {
+                    showToast('Chave excluída.', 'info');
+                    loadAdminKeys();
+                }
+            } catch (err) {
+                alert('Erro ao excluir chave.');
+            }
+        }
+
+        function openModal() { document.getElementById('key-modal').classList.remove('hidden'); }
+        function closeModal() { document.getElementById('key-modal').classList.add('hidden'); document.getElementById('modal-form').reset(); }
+
+        function showToast(message, type = 'info') {
+            const container = document.getElementById('toast-container');
+            const toast = document.createElement('div');
+            let bgClass = "bg-gray-900 border-gray-700 text-white", icon = "fa-circle-info text-purple-400";
+            if (type === 'success') { bgClass = "bg-gray-900 border-emerald-500/40 text-emerald-300"; icon = "fa-circle-check text-emerald-400"; }
+            else if (type === 'error') { bgClass = "bg-gray-900 border-rose-500/40 text-rose-300"; icon = "fa-triangle-exclamation text-rose-400"; }
+            toast.className = `pointer-events-auto flex items-center gap-3 px-4 py-3 rounded-xl border shadow-xl text-xs font-medium animate-fade-in ${bgClass}`;
+            toast.innerHTML = `<i class="fa-solid ${icon} text-sm"></i> <span>${message}</span>`;
+            container.appendChild(toast);
+            setTimeout(() => { toast.style.opacity = '0'; setTimeout(() => toast.remove(), 300); }, 3000);
+        }
+    </script>
+</body>
+</html>
