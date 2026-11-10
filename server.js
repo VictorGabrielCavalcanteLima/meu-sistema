@@ -6,129 +6,171 @@ const app = express();
 app.use(express.json());
 app.use(express.static(path.join(__dirname, 'public')));
 
-// Pega a URL do MongoDB configurada no Render (MONGO_URI)
 const MONGO_URI = process.env.MONGO_URI;
 const DB_NAME = "keyaccess_db";
+const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || "123456";
 
-// DEFINE A TUA PALAVRA-PASSE DE ADMIN AQUI (ou usa variável de ambiente)
-const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || "123456"; 
+let db, keysCollection, resellersCollection, logsCollection;
 
-let db, keysCollection;
-
-// Conectar à base de dados na nuvem
 if (MONGO_URI) {
     MongoClient.connect(MONGO_URI)
         .then(client => {
             db = client.db(DB_NAME);
             keysCollection = db.collection('keys');
+            resellersCollection = db.collection('resellers');
+            logsCollection = db.collection('logs');
             console.log("Conectado ao MongoDB Atlas com sucesso!");
         })
         .catch(err => console.error("Erro ao conectar ao MongoDB:", err));
-} else {
-    console.warn("AVISO: MONGO_URI não definida nas variáveis de ambiente!");
 }
 
-// Middleware para verificar se a requisição de Admin é autorizada
-function checkAdminAuth(req, res, next) {
-    const authHeader = req.headers['x-admin-auth'];
-    if (authHeader === ADMIN_PASSWORD) {
-        return next();
+// Helper para guardar logs de atividade
+async function addLog(action, details) {
+    if (logsCollection) {
+        await logsCollection.insertOne({ action, details, timestamp: new Date() });
     }
-    return res.status(401).json({ error: "Acesso negado. Palavra-passe incorreta." });
 }
 
 // ================= API ENDPOINTS =================
 
-// 1. Validar palavra-passe do Admin no Frontend
-app.post('/api/admin/login', (req, res) => {
-    const { password } = req.body;
-    if (password === ADMIN_PASSWORD) {
-        return res.json({ success: true, message: "Login efetuado com sucesso!" });
+// 1. Login Admin ou Revendedor
+app.post('/api/auth/login', async (req, res) => {
+    const { username, password } = req.body;
+    if (username === 'admin' && password === ADMIN_PASSWORD) {
+        return res.json({ success: true, role: 'admin', token: ADMIN_PASSWORD });
     }
-    return res.status(401).json({ success: false, message: "Palavra-passe incorreta!" });
+    
+    if (resellersCollection) {
+        const reseller = await resellersCollection.findOne({ username, password });
+        if (reseller) {
+            return res.json({ success: true, role: 'reseller', username: reseller.username, credits: reseller.credits });
+        }
+    }
+    return res.status(401).json({ success: false, message: "Credenciais inválidas!" });
 });
 
-// 2. Listar todas as chaves (Protegido por Senha)
-app.get('/api/admin/keys', checkAdminAuth, async (req, res) => {
+// 2. Dashboard Stats & Keys (Admin)
+app.get('/api/admin/dashboard', async (req, res) => {
     try {
-        if (!keysCollection) return res.status(500).json({ error: "Base de dados não conectada" });
+        const totalKeys = await keysCollection.countDocuments({});
+        const activeKeys = await keysCollection.countDocuments({ bof: { $ne: true } });
+        const bannedKeys = await keysCollection.countDocuments({ banned: true });
         const keys = await keysCollection.find({}).toArray();
-        res.json(keys);
+        const resellers = resellersCollection ? await resellersCollection.find({}).toArray() : [];
+        const logs = logsCollection ? await logsCollection.find({}).sort({ timestamp: -1 }).limit(10).toArray() : [];
+
+        res.json({ stats: { totalKeys, activeKeys, bannedKeys }, keys, resellers, logs });
     } catch (err) {
-        res.status(500).json({ error: "Erro ao buscar chaves" });
+        res.status(500).json({ error: "Erro ao buscar dados do dashboard" });
     }
 });
 
-// 3. Criar nova chave (Protegido por Senha)
-app.post('/api/admin/keys', checkAdminAuth, async (req, res) => {
+// 3. Criar Chave (Admin ou Revendedor)
+app.post('/api/keys/create', async (req, res) => {
     try {
-        if (!keysCollection) return res.status(500).json({ error: "Base de dados não conectada" });
-        const { key, maxDevices, expiresAt } = req.body;
+        const { durationDays, maxDevices, resellerUser } = req.body;
         
+        // Se for revendedor, desconta créditos
+        if (resellerUser) {
+            const reseller = await resellersCollection.findOne({ username: resellerUser });
+            if (!reseller || reseller.credits <= 0) {
+                return res.status(400).json({ success: false, message: "Créditos insuficientes!" });
+            }
+            await resellersCollection.updateOne({ username: resellerUser }, { $inc: { credits: -1 } });
+        }
+
+        const keyString = 'KEY-' + Math.random().toString(36).substring(2, 8).toUpperCase() + '-' + Math.random().toString(36).substring(2, 6).toUpperCase();
+        
+        let expiresAt = null;
+        if (durationDays && durationDays > 0) {
+            expiresAt = new Date();
+            expiresAt.setDate(expiresAt.getDate() + parseInt(durationDays));
+        }
+
         const newKey = {
-            key: key ? key.toUpperCase() : ('KEY-' + Math.random().toString(36).substring(2, 8).toUpperCase()),
+            key: keyString,
+            durationDays: durationDays || 0,
+            expiresAt: expiresAt,
             maxDevices: maxDevices || 3,
             devices: [],
-            createdAt: new Date()
+            banned: false,
+            createdAt: new Date(),
+            createdBy: resellerUser || 'admin'
         };
 
         await keysCollection.insertOne(newKey);
-        res.json({ success: true, message: "Chave criada com sucesso!", key: newKey });
+        await addLog("Criação de Chave", `Chave ${keyString} criada por ${resellerUser || 'Admin'}`);
+        res.json({ success: true, key: newKey });
     } catch (err) {
-        res.status(500).json({ error: "Erro ao criar chave" });
+        res.status(500).json({ success: false, error: "Erro ao criar chave" });
     }
 });
 
-// 4. Apagar chave (Protegido por Senha)
-app.delete('/api/admin/keys/:id', checkAdminAuth, async (req, res) => {
+// 4. Ações na Chave (Banir, Reset HWID, Apagar)
+app.post('/api/keys/action', async (req, res) => {
+    const { keyId, action } = req.body;
     try {
-        if (!keysCollection) return res.status(500).json({ error: "Base de dados não conectada" });
-        const id = req.params.id;
-        await keysCollection.deleteOne({ _id: new ObjectId(id) });
-        res.json({ success: true, message: "Chave removida!" });
+        if (action === 'delete') {
+            await keysCollection.deleteOne({ _id: new ObjectId(keyId) });
+            await addLog("Remoção", `Chave ID ${keyId} apagada.`);
+        } else if (action === 'ban') {
+            const keyData = await keysCollection.findOne({ _id: new ObjectId(keyId) });
+            const newStatus = !keyData.banned;
+            await keysCollection.updateOne({ _id: new ObjectId(keyId) }, { $set: { banned: newStatus } });
+            await addLog("Banimento", `Chave ${keyData.key} status banido: ${newStatus}`);
+        } else if (action === 'reset_hwid') {
+            await keysCollection.updateOne({ _id: new ObjectId(keyId) }, { $set: { devices: [] } });
+            await addLog("Reset HWID", `Dispositivos limpos para a chave ID ${keyId}`);
+        }
+        res.json({ success: true });
     } catch (err) {
-        res.status(500).json({ error: "Erro ao apagar chave" });
+        res.status(500).json({ success: false, error: "Erro na ação" });
     }
 });
 
-// 5. Validar chave no Aplicativo Android (Público para os Apps)
+// 5. Criar Conta de Revendedor (Admin)
+app.post('/api/admin/reseller/create', async (req, res) => {
+    const { username, password, credits } = req.body;
+    try {
+        await resellersCollection.insertOne({ username, password, credits: parseInt(credits) || 10, createdAt: new Date() });
+        res.json({ success: true });
+    } catch (err) {
+        res.status(500).json({ success: false, error: "Erro ao criar revendedor" });
+    }
+});
+
+// 6. Validação de Chave no App Android (Com verificação de expiração e ban)
 app.post('/api/user/validate', async (req, res) => {
     try {
-        if (!keysCollection) return res.status(500).json({ success: false, message: "Servidor indisponível" });
-        
         const { key, hwid } = req.body;
-        if (!key || !hwid) {
-            return res.status(400).json({ success: false, message: "Chave ou HWID em falta." });
-        }
+        if (!key || !hwid) return res.status(400).json({ success: false, message: "Dados incompletos." });
 
         const keyData = await keysCollection.findOne({ key: key.toUpperCase() });
-        if (!keyData) {
-            return res.json({ success: false, message: "Chave inválida ou não encontrada." });
+        if (!keyData) return res.json({ success: false, message: "Chave inválida." });
+
+        if (keyData.banned) return res.json({ success: false, message: "Esta chave foi banida pelo administrador." });
+
+        // Verificar Expiração por Data
+        if (keyData.expiresAt && new Date() > new Date(keyData.expiresAt)) {
+            return res.json({ success: false, message: "A assinatura desta chave expirou." });
         }
 
         let devices = keyData.devices || [];
-
         if (devices.includes(hwid)) {
             return res.json({ success: true, message: "Acesso autorizado!" });
         }
 
         if (devices.length < (keyData.maxDevices || 3)) {
             devices.push(hwid);
-            await keysCollection.updateOne(
-                { _id: keyData._id },
-                { $set: { devices: devices } }
-            );
-            return res.json({ success: true, message: "Dispositivo registado e autorizado!" });
+            await keysCollection.updateOne({ _id: keyData._id }, { $set: { devices: devices } });
+            return res.json({ success: true, message: "Dispositivo registado com sucesso!" });
         }
 
         return res.json({ success: false, message: "Limite máximo de aparelhos atingido." });
-
     } catch (err) {
         res.status(500).json({ success: false, message: "Erro interno no servidor." });
     }
 });
 
 const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => {
-    console.log(`Servidor a correr na porta ${PORT}`);
-});
+app.listen(PORT, () => console.log(`Servidor profissional a correr na porta ${PORT}`));
