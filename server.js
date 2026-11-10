@@ -13,11 +13,20 @@ const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || "123456";
 let db, keysCollection, resellersCollection, logsCollection;
 
 async function startServer() {
-    if (!MONGO_URI) {
-        console.error("ERRO CRÍTICO: MONGO_URI não está definida nas variáveis do Render!");
+    let uri = process.env.MONGO_URI || "";
+    
+    // Remove portas (ex: :27017) ou formatações erradas de URI +srv
+    if (uri.startsWith("mongodb+srv://")) {
+        uri = uri.replace(/:[0-9]+(\/|\?|$)/, "$1");
     }
+
+    if (!uri) {
+        console.error("ERRO CRÍTICO: MONGO_URI não definida!");
+        return;
+    }
+
     try {
-        const client = new MongoClient(MONGO_URI);
+        const client = new MongoClient(uri);
         await client.connect();
         db = client.db(DB_NAME);
         keysCollection = db.collection('keys');
@@ -25,13 +34,12 @@ async function startServer() {
         logsCollection = db.collection('logs');
         console.log("Conectado ao MongoDB Atlas com sucesso!");
     } catch (err) {
-        console.error("Falha ao ligar ao MongoDB:", err);
+        console.error("Falha ao ligar ao MongoDB:", err.message);
     }
 
     const PORT = process.env.PORT || 3000;
     app.listen(PORT, () => console.log(`Servidor a correr na porta ${PORT}`));
 }
-startServer();
 
 async function addLog(action, details) {
     try {
