@@ -8,13 +8,13 @@ app.use(express.static(path.join(__dirname, 'public')));
 
 const MONGO_URI = process.env.MONGO_URI;
 const DB_NAME = "keyaccess_db";
-const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || "@Vitor259.0";
+const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || "123456";
 
 let db, keysCollection, resellersCollection, logsCollection;
 
-async function connectDB() {
+async function startServer() {
     if (!MONGO_URI) {
-        console.warn("AVISO: MONGO_URI não definida!");
+        console.error("ERRO: MONGO_URI não está definida nas variáveis de ambiente do Render!");
         return;
     }
     try {
@@ -25,21 +25,25 @@ async function connectDB() {
         resellersCollection = db.collection('resellers');
         logsCollection = db.collection('logs');
         console.log("Conectado ao MongoDB Atlas com sucesso!");
+
+        const PORT = process.env.PORT || 3000;
+        app.listen(PORT, () => console.log(`Servidor a correr na porta ${PORT}`));
     } catch (err) {
-        console.error("Erro ao conectar ao MongoDB:", err);
+        console.error("Erro fatal ao conectar ao MongoDB:", err);
     }
 }
-connectDB();
+startServer();
 
 async function addLog(action, details) {
     try {
         if (logsCollection) {
             await logsCollection.insertOne({ action, details, timestamp: new Date() });
         }
-    } catch (e) {
-        console.error("Erro ao gravar log:", e);
-    }
+    } catch (e) {}
 }
+
+// Restantes endpoints (login, dashboard, create, etc.) mantêm-se exatamente iguais...
+
 
 // ================= API ENDPOINTS =================
 
