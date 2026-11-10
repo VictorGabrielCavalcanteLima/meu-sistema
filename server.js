@@ -1,162 +1,134 @@
 const express = require('express');
-const fs = require('fs');
-const bcrypt = require('bcryptjs');
-const jwt = require('jsonwebtoken');
-const cors = require('cors');
-
+const { MongoClient, ObjectId } = require('mongodb');
+const path = require('path');
 const app = express();
+
 app.use(express.json());
-app.use(cors());
+app.use(express.static(path.join(__dirname, 'public')));
 
-// Diz ao Express para servir os arquivos visuais da pasta 'public'
-app.use(express.static('public'));
+// Pega a URL do MongoDB configurada no Render (MONGO_URI)
+const MONGO_URI = process.env.MONGO_URI;
+const DB_NAME = "keyaccess_db";
 
-const SECRET_KEY = "sua_chave_secreta_super_segura_aqui";
-const MAX_DEVICES = 3;
-const DB_FILE = './database.json';
+// DEFINE A TUA PALAVRA-PASSE DE ADMIN AQUI (ou usa variável de ambiente)
+const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || "123456"; 
 
-function readDB() {
-  if (!fs.existsSync(DB_FILE)) {
-    const initialData = {
-      keys: [],
-      devices: [],
-      admin: { password_hash: "" }
-    };
-    fs.writeFileSync(DB_FILE, JSON.stringify(initialData, null, 2));
-  }
-  return JSON.parse(fs.readFileSync(DB_FILE, 'utf8'));
+let db, keysCollection;
+
+// Conectar à base de dados na nuvem
+if (MONGO_URI) {
+    MongoClient.connect(MONGO_URI)
+        .then(client => {
+            db = client.db(DB_NAME);
+            keysCollection = db.collection('keys');
+            console.log("Conectado ao MongoDB Atlas com sucesso!");
+        })
+        .catch(err => console.error("Erro ao conectar ao MongoDB:", err));
+} else {
+    console.warn("AVISO: MONGO_URI não definida nas variáveis de ambiente!");
 }
 
-function writeDB(data) {
-  fs.writeFileSync(DB_FILE, JSON.stringify(data, null, 2));
-}
-
-async function initAdmin() {
-  let db = readDB();
-  if (!db.admin.password_hash) {
-    db.admin.password_hash = await bcrypt.hash("@Vitor259.0", 10);
-    writeDB(db);
-  }
-}
-initAdmin();
-
-app.post('/api/user/validate', (req, res) => {
-  const { key, hwid } = req.body;
-  const now = Date.now();
-  let db = readDB();
-
-  let keyObj = db.keys.find(k => k.key_code === key);
-  if (!keyObj) {
-    return res.status(404).json({ success: false, message: "Chave inválida ou não encontrada." });
-  }
-
-  if (keyObj.activated_at && keyObj.expires_at && now > keyObj.expires_at) {
-    keyObj.status = 'expired';
-    writeDB(db);
-    return res.status(403).json({ success: false, message: "Esta chave expirou." });
-  }
-
-  if (!keyObj.activated_at) {
-    keyObj.activated_at = now;
-    keyObj.expires_at = keyObj.duration_days > 0 ? now + (keyObj.duration_days * 86400000) : null;
-  }
-
-  let deviceList = db.devices.filter(d => d.key_id === keyObj.id);
-  let hwids = deviceList.map(d => d.hwid);
-
-  if (!hwids.includes(hwid)) {
-    if (hwids.length >= MAX_DEVICES) {
-      return res.status(403).json({ success: false, message: `Limite de ${MAX_DEVICES} dispositivos atingido.` });
+// Middleware para verificar se a requisição de Admin é autorizada
+function checkAdminAuth(req, res, next) {
+    const authHeader = req.headers['x-admin-auth'];
+    if (authHeader === ADMIN_PASSWORD) {
+        return next();
     }
-    db.devices.push({ key_id: keyObj.id, hwid });
-  }
-
-  writeDB(db);
-
-  const token = jwt.sign({ keyId: keyObj.id, key: keyObj.key_code }, SECRET_KEY, { expiresIn: '12h' });
-  return res.json({ success: true, message: "Acesso autorizado!", token, expires: keyObj.expires_at });
-});
-
-app.post('/api/admin/login', async (req, res) => {
-  const { password } = req.body;
-  let db = readDB();
-
-  const isValid = await bcrypt.compare(password, db.admin.password_hash);
-  if (!isValid) {
-    return res.status(401).json({ success: false, message: "Senha incorreta." });
-  }
-
-  const token = jwt.sign({ role: 'admin' }, SECRET_KEY, { expiresIn: '2h' });
-  res.json({ success: true, token });
-});
-
-function authenticateAdmin(req, res, next) {
-  const token = req.headers['authorization'];
-  if (!token) return res.status(401).json({ message: "Acesso não autorizado." });
-
-  jwt.verify(token.replace('Bearer ', ''), SECRET_KEY, (err, decoded) => {
-    if (err || decoded.role !== 'admin') return res.status(403).json({ message: "Token inválido ou expirado." });
-    next();
-  });
+    return res.status(401).json({ error: "Acesso negado. Palavra-passe incorreta." });
 }
 
-app.post('/api/admin/create-key', authenticateAdmin, (req, res) => {
-  const { customKey, durationDays } = req.body;
-  let db = readDB();
+// ================= API ENDPOINTS =================
 
-  const keyCode = customKey || 'KEY-' + Math.random().toString(36).substring(2, 8).toUpperCase();
-  
-  if (db.keys.some(k => k.key_code === keyCode)) {
-    return res.status(400).json({ success: false, message: "Chave já existe." });
-  }
-
-  const newKey = {
-    id: db.keys.length > 0 ? db.keys[db.keys.length - 1].id + 1 : 1,
-    key_code: keyCode,
-    duration_days: durationDays || 0,
-    activated_at: null,
-    expires_at: null,
-    status: 'active'
-  };
-
-  db.keys.push(newKey);
-  writeDB(db);
-
-  res.json({ success: true, message: "Chave criada com sucesso!", key: keyCode });
+// 1. Validar palavra-passe do Admin no Frontend
+app.post('/api/admin/login', (req, res) => {
+    const { password } = req.body;
+    if (password === ADMIN_PASSWORD) {
+        return res.json({ success: true, message: "Login efetuado com sucesso!" });
+    }
+    return res.status(401).json({ success: false, message: "Palavra-passe incorreta!" });
 });
 
-app.get('/api/admin/keys', authenticateAdmin, (req, res) => {
-  let db = readDB();
-  
-  const keysWithCount = db.keys.map(k => {
-    const device_count = db.devices.filter(d => d.key_id === k.id).length;
-    return { ...k, device_count };
-  });
-
-  res.json({ success: true, keys: keysWithCount });
+// 2. Listar todas as chaves (Protegido por Senha)
+app.get('/api/admin/keys', checkAdminAuth, async (req, res) => {
+    try {
+        if (!keysCollection) return res.status(500).json({ error: "Base de dados não conectada" });
+        const keys = await keysCollection.find({}).toArray();
+        res.json(keys);
+    } catch (err) {
+        res.status(500).json({ error: "Erro ao buscar chaves" });
+    }
 });
 
-app.post('/api/admin/reset-hwid', authenticateAdmin, (req, res) => {
-  const { keyId } = req.body;
-  let db = readDB();
+// 3. Criar nova chave (Protegido por Senha)
+app.post('/api/admin/keys', checkAdminAuth, async (req, res) => {
+    try {
+        if (!keysCollection) return res.status(500).json({ error: "Base de dados não conectada" });
+        const { key, maxDevices, expiresAt } = req.body;
+        
+        const newKey = {
+            key: key ? key.toUpperCase() : ('KEY-' + Math.random().toString(36).substring(2, 8).toUpperCase()),
+            maxDevices: maxDevices || 3,
+            devices: [],
+            createdAt: new Date()
+        };
 
-  db.devices = db.devices.filter(d => d.key_id !== keyId);
-  writeDB(db);
-
-  res.json({ success: true, message: "Dispositivos resetados!" });
+        await keysCollection.insertOne(newKey);
+        res.json({ success: true, message: "Chave criada com sucesso!", key: newKey });
+    } catch (err) {
+        res.status(500).json({ error: "Erro ao criar chave" });
+    }
 });
 
-app.delete('/api/admin/delete-key/:id', authenticateAdmin, (req, res) => {
-  const keyId = parseInt(req.params.id);
-  let db = readDB();
-
-  db.keys = db.keys.filter(k => k.id !== keyId);
-  db.devices = db.devices.filter(d => d.key_id !== keyId);
-  writeDB(db);
-
-  res.json({ success: true, message: "Chave excluída!" });
+// 4. Apagar chave (Protegido por Senha)
+app.delete('/api/admin/keys/:id', checkAdminAuth, async (req, res) => {
+    try {
+        if (!keysCollection) return res.status(500).json({ error: "Base de dados não conectada" });
+        const id = req.params.id;
+        await keysCollection.deleteOne({ _id: new ObjectId(id) });
+        res.json({ success: true, message: "Chave removida!" });
+    } catch (err) {
+        res.status(500).json({ error: "Erro ao apagar chave" });
+    }
 });
 
-app.listen(3000, () => {
-  console.log("Servidor rodando com JSON na porta 3000!");
+// 5. Validar chave no Aplicativo Android (Público para os Apps)
+app.post('/api/user/validate', async (req, res) => {
+    try {
+        if (!keysCollection) return res.status(500).json({ success: false, message: "Servidor indisponível" });
+        
+        const { key, hwid } = req.body;
+        if (!key || !hwid) {
+            return res.status(400).json({ success: false, message: "Chave ou HWID em falta." });
+        }
+
+        const keyData = await keysCollection.findOne({ key: key.toUpperCase() });
+        if (!keyData) {
+            return res.json({ success: false, message: "Chave inválida ou não encontrada." });
+        }
+
+        let devices = keyData.devices || [];
+
+        if (devices.includes(hwid)) {
+            return res.json({ success: true, message: "Acesso autorizado!" });
+        }
+
+        if (devices.length < (keyData.maxDevices || 3)) {
+            devices.push(hwid);
+            await keysCollection.updateOne(
+                { _id: keyData._id },
+                { $set: { devices: devices } }
+            );
+            return res.json({ success: true, message: "Dispositivo registado e autorizado!" });
+        }
+
+        return res.json({ success: false, message: "Limite máximo de aparelhos atingido." });
+
+    } catch (err) {
+        res.status(500).json({ success: false, message: "Erro interno no servidor." });
+    }
+});
+
+const PORT = process.env.PORT || 3000;
+app.listen(PORT, () => {
+    console.log(`Servidor a correr na porta ${PORT}`);
 });
