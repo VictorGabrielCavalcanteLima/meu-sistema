@@ -15,169 +15,50 @@
             --accent-text: #000000;
             --input-bg: #1A1A1A;
             --danger: #FF453A;
+            --success: #32D74B;
         }
 
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-        }
-
-        body {
-            background-color: var(--bg-color);
-            color: var(--text-main);
-            padding: 20px;
-            display: flex;
-            justify-content: center;
-        }
-
-        .container {
-            width: 100%;
-            max-width: 480px;
-        }
-
-        header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 24px;
-            margin-top: 12px;
-        }
-
-        h1 {
-            font-size: 28px;
-            font-weight: 800;
-            letter-spacing: -0.5px;
-        }
-
-        .nav-buttons {
-            display: flex;
-            gap: 8px;
-        }
-
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+        body { background-color: var(--bg-color); color: var(--text-main); padding: 20px; display: flex; justify-content: center; }
+        .container { width: 100%; max-width: 480px; }
+        
+        header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; margin-top: 12px; }
+        h1 { font-size: 28px; font-weight: 800; letter-spacing: -0.5px; }
+        .nav-buttons { display: flex; gap: 8px; }
+        
         .btn-toggle {
-            background: var(--card-bg);
-            border: 1px solid var(--card-border);
-            color: var(--text-muted);
-            padding: 8px 14px;
-            border-radius: 20px;
-            font-size: 13px;
-            font-weight: 600;
-            cursor: pointer;
-            transition: 0.2s;
+            background: var(--card-bg); border: 1px solid var(--card-border); color: var(--text-muted);
+            padding: 8px 14px; border-radius: 20px; font-size: 13px; font-weight: 600; cursor: pointer;
         }
+        .btn-toggle.active { background: var(--text-main); color: var(--accent-text); border-color: var(--text-main); }
 
-        .btn-toggle.active {
-            background: var(--text-main);
-            color: var(--accent-text);
-            border-color: var(--text-main);
-        }
-
-        .card {
-            background-color: var(--card-bg);
-            border: 1px solid var(--card-border);
-            border-radius: 20px;
-            padding: 24px;
-            margin-bottom: 16px;
-        }
-
-        .card-title {
-            font-size: 18px;
-            font-weight: 700;
-            margin-bottom: 8px;
-        }
-
-        .card-desc {
-            font-size: 13px;
-            color: var(--text-muted);
-            margin-bottom: 20px;
-            line-height: 1.4;
-        }
+        .card { background-color: var(--card-bg); border: 1px solid var(--card-border); border-radius: 20px; padding: 24px; margin-bottom: 16px; }
+        .card-title { font-size: 18px; font-weight: 700; margin-bottom: 8px; }
+        .card-desc { font-size: 13px; color: var(--text-muted); margin-bottom: 20px; line-height: 1.4; }
 
         input {
-            width: 100%;
-            height: 50px;
-            background-color: var(--input-bg);
-            border: 1px solid var(--card-border);
-            border-radius: 12px;
-            padding: 0 16px;
-            color: var(--text-main);
-            font-size: 15px;
-            font-family: monospace;
-            margin-bottom: 12px;
-            outline: none;
+            width: 100%; height: 50px; background-color: var(--input-bg); border: 1px solid var(--card-border);
+            border-radius: 12px; padding: 0 16px; color: var(--text-main); font-size: 15px; margin-bottom: 12px; outline: none;
         }
-
-        input:focus {
-            border-color: var(--text-muted);
-        }
+        input:focus { border-color: var(--text-muted); }
 
         button.primary {
-            width: 100%;
-            height: 50px;
-            background-color: var(--accent-btn);
-            color: var(--accent-text);
-            border: none;
-            border-radius: 12px;
-            font-size: 15px;
-            font-weight: 700;
-            cursor: pointer;
-            transition: 0.2s;
+            width: 100%; height: 50px; background-color: var(--accent-btn); color: var(--accent-text);
+            border: none; border-radius: 12px; font-size: 15px; font-weight: 700; cursor: pointer; transition: 0.2s;
         }
+        button.primary:active { opacity: 0.8; }
 
-        button.primary:active {
-            opacity: 0.8;
-        }
+        table { width: 100%; border-collapse: collapse; font-size: 13px; text-align: left; margin-top: 12px; }
+        th { color: var(--text-muted); font-size: 11px; text-transform: uppercase; padding-bottom: 12px; border-bottom: 1px solid var(--card-border); }
+        td { padding: 12px 0; border-bottom: 1px solid var(--card-border); font-family: monospace; }
 
-        .table-container {
-            overflow-x: auto;
-            margin-top: 12px;
-        }
-
-        table {
-            width: 100%;
-            border-collapse: collapse;
-            font-size: 13px;
-            text-align: left;
-        }
-
-        th {
-            color: var(--text-muted);
-            font-size: 11px;
-            text-transform: uppercase;
-            padding-bottom: 12px;
-            border-bottom: 1px solid var(--card-border);
-        }
-
-        td {
-            padding: 12px 0;
-            border-bottom: 1px solid var(--card-border);
-            font-family: monospace;
-        }
-
-        .action-btn {
-            background: none;
-            border: none;
-            color: var(--text-muted);
-            cursor: pointer;
-            font-size: 16px;
-            margin-right: 8px;
-        }
-
-        .action-btn:hover {
-            color: var(--text-main);
-        }
-
-        .hidden {
-            display: none;
-        }
+        .action-btn { background: none; border: none; color: var(--danger); cursor: pointer; font-size: 16px; }
+        .hidden { display: none; }
     </style>
 </head>
 <body>
 
     <div class="container">
-        <!-- HEADER -->
         <header>
             <div>
                 <h1>KeyAccess</h1>
@@ -192,138 +73,131 @@
         <!-- ÁREA DO USUÁRIO -->
         <div id="userSection" class="card">
             <div class="card-title">Portal de Validação</div>
-            <div class="card-desc">Insira sua chave de acesso para desbloquear o sistema com segurança HWID.</div>
-            
+            <div class="card-desc">Insira a sua chave para validar o acesso no seu dispositivo.</div>
             <input type="text" id="inputKey" placeholder="KEY-XXXX-XXXX" />
             <button class="primary" onclick="validateKey()">Validar Acesso</button>
-            
-            <p id="userMsg" style="margin-top: 12px; font-size: 13px; text-align: center; color: var(--danger);"></p>
+            <p id="userMsg" style="margin-top: 12px; font-size: 13px; text-align: center;"></p>
         </div>
 
-        <!-- ÁREA DO ADMINISTRADOR -->
+        <!-- LOGIN ADMIN -->
+        <div id="adminLoginSection" class="card hidden">
+            <div class="card-title">Acesso Restrito</div>
+            <div class="card-desc">Introduza a palavra-passe do administrador para gerir o sistema.</div>
+            <input type="password" id="adminPasswordInput" placeholder="Sua palavra-passe de admin" />
+            <button class="primary" onclick="loginAdmin()">Entrar no Painel</button>
+            <p id="loginMsg" style="margin-top: 12px; font-size: 13px; text-align: center; color: var(--danger);"></p>
+        </div>
+
+        <!-- PAINEL ADMIN -->
         <div id="adminSection" class="card hidden">
             <div class="card-title">Painel do Proprietário</div>
-            <div class="card-desc">Gerenciamento completo e persistente de licenças na nuvem.</div>
+            <div class="card-desc">Gerenciamento de licenças persistentes na nuvem.</div>
 
             <button class="primary" onclick="createKey()" style="margin-bottom: 20px;">+ Criar Nova Key</button>
 
             <div class="card-title" style="font-size: 15px;">Chaves Ativas</div>
-            <div class="table-container">
-                <table>
-                    <thead>
-                        <tr>
-                            <th>Chave</th>
-                            <th>Aparelhos</th>
-                            <th>Ações</th>
-                        </tr>
-                    </thead>
-                    <tbody id="keysTableBody">
-                        <!-- Preenchido via JavaScript -->
-                    </tbody>
-                </table>
-            </div>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Chave</th>
+                        <th>Aparelhos</th>
+                        <th>Ação</th>
+                    </tr>
+                </thead>
+                <tbody id="keysTableBody"></tbody>
+            </table>
         </div>
     </div>
 
     <script>
-        function switchTab(tab) {
-            const userSec = document.getElementById('userSection');
-            const adminSec = document.getElementById('adminSection');
-            const btnUser = document.getElementById('btnUserTab');
-            const btnAdmin = document.getElementById('btnAdminTab');
-            const subtitle = document.getElementById('subtitle');
+        let adminAuthToken = "";
 
+        function switchTab(tab) {
+            document.getElementById('btnUserTab').classList.toggle('active', tab === 'user');
+            document.getElementById('btnAdminTab').classList.toggle('active', tab === 'admin');
+            
             if (tab === 'user') {
-                userSec.classList.remove('hidden');
-                adminSec.classList.add('hidden');
-                btnUser.classList.add('active');
-                btnAdmin.classList.remove('active');
-                subtitle.innerText = "Portal de Validação";
+                document.getElementById('userSection').classList.remove('hidden');
+                document.getElementById('adminLoginSection').classList.add('hidden');
+                document.getElementById('adminSection').classList.add('hidden');
             } else {
-                userSec.classList.add('hidden');
-                adminSec.classList.remove('hidden');
-                btnAdmin.classList.add('active');
-                btnUser.classList.remove('active');
-                subtitle.innerText = "Modo Administrador";
-                loadKeys();
+                document.getElementById('userSection').classList.add('hidden');
+                if (adminAuthToken) {
+                    document.getElementById('adminSection').classList.remove('hidden');
+                    loadKeys();
+                } else {
+                    document.getElementById('adminLoginSection').classList.remove('hidden');
+                }
             }
+        }
+
+        async function loginAdmin() {
+            const pass = document.getElementById('adminPasswordInput').value;
+            const res = await fetch('/api/admin/login', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ password: pass })
+            });
+            const data = await res.json();
+            if (data.success) {
+                adminAuthToken = pass;
+                document.getElementById('adminLoginSection').classList.add('hidden');
+                document.getElementById('adminSection').classList.remove('hidden');
+                loadKeys();
+            } else {
+                document.getElementById('loginMsg').innerText = data.message;
+            }
+        }
+
+        async function loadKeys() {
+            const res = await fetch('/api/admin/keys', {
+                headers: { 'x-admin-auth': adminAuthToken }
+            });
+            const keys = await res.json();
+            const tbody = document.getElementById('keysTableBody');
+            tbody.innerHTML = '';
+            keys.forEach(k => {
+                tbody.innerHTML += `
+                    <tr>
+                        <td>${k.key}</td>
+                        <td>${k.devices ? k.devices.length : 0} / ${k.maxDevices || 3}</td>
+                        <td><button class="action-btn" onclick="deleteKey('${k._id}')">🗑️</button></td>
+                    </tr>`;
+            });
+        }
+
+        async function createKey() {
+            await fetch('/api/admin/keys', {
+                method: 'POST',
+                headers: { 
+                    'Content-Type': 'application/json',
+                    'x-admin-auth': adminAuthToken 
+                },
+                body: JSON.stringify({ maxDevices: 3 })
+            });
+            loadKeys();
+        }
+
+        async function deleteKey(id) {
+            if (!confirm("Remover esta chave?")) return;
+            await fetch(`/api/admin/keys/${id}`, {
+                method: 'DELETE',
+                headers: { 'x-admin-auth': adminAuthToken }
+            });
+            loadKeys();
         }
 
         async function validateKey() {
             const key = document.getElementById('inputKey').value;
             const msg = document.getElementById('userMsg');
-            msg.innerText = "";
-
-            if (!key) {
-                msg.innerText = "Digite uma chave válida.";
-                return;
-            }
-
-            try {
-                const res = await fetch('/api/user/validate', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ key, hwid: "HWID-TESTE-ANDROID" })
-                });
-                const data = await res.json();
-                if (data.success) {
-                    msg.style.color = "#32D74B";
-                    msg.innerText = "Acesso autorizado com sucesso!";
-                } else {
-                    msg.style.color = "#FF453A";
-                    msg.innerText = data.message || "Chave inválida.";
-                }
-            } catch (err) {
-                msg.style.color = "#FF453A";
-                msg.innerText = "Erro de conexão com o servidor.";
-            }
-        }
-
-        async function loadKeys() {
-            try {
-                const res = await fetch('/api/admin/keys');
-                const keys = await res.json();
-                const tbody = document.getElementById('keysTableBody');
-                tbody.innerHTML = '';
-
-                keys.forEach(k => {
-                    const tr = document.createElement('tr');
-                    tr.innerHTML = `
-                        <td>${k.key}</td>
-                        <td>${k.devices ? k.devices.length : 0} / ${k.maxDevices || 3}</td>
-                        <td>
-                            <button class="action-btn" onclick="deleteKey('${k._id}')">🗑️</button>
-                        </td>
-                    `;
-                    tbody.appendChild(tr);
-                });
-            } catch (err) {
-                console.error("Erro ao carregar chaves");
-            }
-        }
-
-        async function createKey() {
-            const randomKey = 'KEY-' + Math.random().toString(36).substring(2, 8).toUpperCase();
-            try {
-                await fetch('/api/admin/keys', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ key: randomKey, maxDevices: 3 })
-                });
-                loadKeys();
-            } catch (err) {
-                alert("Erro ao criar chave.");
-            }
-        }
-
-        async function deleteKey(id) {
-            if (!confirm("Deseja apagar esta chave?")) return;
-            try {
-                await fetch(`/api/admin/keys/${id}`, { method: 'DELETE' });
-                loadKeys();
-            } catch (err) {
-                alert("Erro ao apagar.");
-            }
+            const res = await fetch('/api/user/validate', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ key, hwid: "ANDROID-TESTE-HWID" })
+            });
+            const data = await res.json();
+            msg.style.color = data.success ? "var(--success)" : "var(--danger)";
+            msg.innerText = data.message;
         }
     </script>
 </body>
